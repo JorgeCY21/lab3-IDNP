@@ -4,33 +4,41 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import com.example.pupistore.ui.theme.PupiStoreTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            PupiStoreTheme(darkTheme = false, dynamicColor = false) {
-                val navController = rememberNavController()
-                NavHost(
-                    navController = navController,
-                    startDestination = "login"
-                ) {
-                    composable("login") { LoginScreen(navController) }
-                    composable("home/{username}") { backStackEntry ->
-                        val username = backStackEntry.arguments?.getString("username") ?: ""
-                        HomeScreen(navController, username)
+            var isDarkTheme by rememberSaveable { mutableStateOf(false) }
+
+            PupiStoreTheme(darkTheme = isDarkTheme) {
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    val navController = rememberNavController()
+                    NavHost(navController = navController, startDestination = "login") {
+                        composable("login") {
+                            LoginScreen(navController, isDarkTheme) { isDarkTheme = !isDarkTheme }
+                        }
+                        composable("home/{username}") { backStackEntry ->
+                            val username = backStackEntry.arguments?.getString("username") ?: ""
+                            HomeScreen(navController, username, isDarkTheme) { isDarkTheme = !isDarkTheme }
+                        }
                     }
                 }
             }
@@ -40,14 +48,30 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(navController: NavHostController) {
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+fun LoginScreen(
+    navController: NavHostController,
+    isDarkTheme: Boolean,
+    onThemeChange: () -> Unit
+) {
+    var username by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    val configuration = LocalConfiguration.current
+    val isLandscape =
+        configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
 
     Scaffold(
+        modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
         topBar = {
             TopAppBar(
-                title = { Text("PupiStore - Iniciar Sesión") }
+                title = { Text("PupiStore - Iniciar Sesión") },
+                actions = {
+                    IconButton(onClick = onThemeChange) {
+                        Icon(
+                            imageVector = if (isDarkTheme) Icons.Filled.WbSunny else Icons.Filled.DarkMode,
+                            contentDescription = "Cambiar tema"
+                        )
+                    }
+                }
             )
         }
     ) { padding ->
@@ -55,7 +79,8 @@ fun LoginScreen(navController: NavHostController) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
+                .padding(if (isLandscape) 32.dp else 16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -63,64 +88,146 @@ fun LoginScreen(navController: NavHostController) {
                 value = username,
                 onValueChange = { username = it },
                 label = { Text("Nombre de usuario") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(if (isLandscape) 0.6f else 0.9f)
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
                 label = { Text("Contraseña") },
                 visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(if (isLandscape) 0.6f else 0.9f)
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = {
-                    // Cualquier usuario/contraseña funciona
                     navController.navigate("home/$username")
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(if (isLandscape) 0.6f else 0.9f)
             ) {
-                Text("Iniciar Sesión")
+                Text("Iniciar Sesión", fontSize = 16.sp)
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavHostController, username: String) {
+fun HomeScreen(
+    navController: NavHostController,
+    username: String,
+    isDarkTheme: Boolean,
+    onThemeChange: () -> Unit
+) {
     val navBarController = rememberNavController()
+    val configuration = LocalConfiguration.current
+    val isLandscape =
+        configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+
     Scaffold(
+        modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
+        topBar = {
+            TopAppBar(
+                title = { Text("PupiStore - $username") },
+                actions = {
+                    IconButton(onClick = onThemeChange) {
+                        Icon(
+                            imageVector = if (isDarkTheme) Icons.Filled.WbSunny else Icons.Filled.DarkMode,
+                            contentDescription = "Cambiar tema"
+                        )
+                    }
+                }
+            )
+        },
         bottomBar = {
-            BottomNavigationBar(navController = navBarController, username = username, rootNav = navController)
+            if (!isLandscape) {
+                BottomNavigationBar(navController = navBarController)
+            }
         }
     ) { padding ->
-        NavHost(
-            navController = navBarController,
-            startDestination = "inicio",
-            modifier = Modifier.padding(padding)
-        ) {
-            composable("inicio") {
-                Column(
+        if (isLandscape) {
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                NavigationRail(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                        .fillMaxHeight()
+                        .padding(vertical = 8.dp)
                 ) {
-                    Text("Bienvenido $username a PupiStore 🐱", style = MaterialTheme.typography.headlineSmall)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Opciones de compra: Juguetes, Camas, Collares, Comida 😺")
+                    val items = listOf(
+                        BottomNavItem("Inicio", "inicio", Icons.Filled.Home),
+                        BottomNavItem("Buscar", "buscar", Icons.Filled.Search),
+                        BottomNavItem("Favoritos", "favoritos", Icons.Filled.Favorite),
+                        BottomNavItem("Carrito", "carrito", Icons.Filled.ShoppingCart),
+                        BottomNavItem("Perfil", "perfil", Icons.Filled.Person)
+                    )
+
+                    val currentDestination = navBarController.currentBackStackEntryAsState().value?.destination
+
+                    items.forEach { item ->
+                        NavigationRailItem(
+                            icon = { Icon(item.icon, contentDescription = item.label) },
+                            label = { Text(item.label) },
+                            selected = currentDestination?.route == item.route,
+                            onClick = {
+                                navBarController.navigate(item.route) {
+                                    popUpTo(navBarController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        )
+                    }
                 }
+
+                NavigationContent(navBarController, username, Modifier.weight(1f))
             }
-            composable("perfil") {
-                ProfileScreen(rootNav = navController)
-            }
-            // Otros tabs vacíos
-            composable("buscar") { EmptyScreen("Buscar") }
-            composable("favoritos") { EmptyScreen("Favoritos") }
-            composable("carrito") { EmptyScreen("Carrito") }
+        } else {
+            NavigationContent(
+                navBarController,
+                username,
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            )
         }
+    }
+}
+
+@Composable
+fun NavigationContent(navController: NavHostController, username: String, modifier: Modifier) {
+    NavHost(
+        navController = navController,
+        startDestination = "inicio",
+        modifier = modifier
+    ) {
+        composable("inicio") {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    "Bienvenido $username a PupiStore 🐱",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    "Explora juguetes, camas, collares y comida 😺",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        }
+        composable("perfil") { ProfileScreen(rootNav = navController) }
+        composable("buscar") { EmptyScreen("Buscar") }
+        composable("favoritos") { EmptyScreen("Favoritos") }
+        composable("carrito") { EmptyScreen("Carrito") }
     }
 }
 
@@ -129,7 +236,7 @@ fun ProfileScreen(rootNav: NavHostController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -137,7 +244,6 @@ fun ProfileScreen(rootNav: NavHostController) {
         Spacer(modifier = Modifier.height(20.dp))
         Button(
             onClick = {
-                // Al cerrar sesión volvemos al login
                 rootNav.navigate("login") {
                     popUpTo(rootNav.graph.findStartDestination().id) { inclusive = true }
                 }
@@ -159,17 +265,17 @@ fun EmptyScreen(title: String) {
 }
 
 @Composable
-fun BottomNavigationBar(navController: NavHostController, username: String, rootNav: NavHostController) {
+fun BottomNavigationBar(navController: NavHostController) {
     val items = listOf(
-        BottomNavItem("Inicio", "inicio", Icons.Default.Home),
-        BottomNavItem("Buscar", "buscar", Icons.Default.Search),
-        BottomNavItem("Favoritos", "favoritos", Icons.Default.Favorite),
-        BottomNavItem("Carrito", "carrito", Icons.Default.ShoppingCart),
-        BottomNavItem("Perfil", "perfil", Icons.Default.Person)
+        BottomNavItem("Inicio", "inicio", Icons.Filled.Home),
+        BottomNavItem("Buscar", "buscar", Icons.Filled.Search),
+        BottomNavItem("Favoritos", "favoritos", Icons.Filled.Favorite),
+        BottomNavItem("Carrito", "carrito", Icons.Filled.ShoppingCart),
+        BottomNavItem("Perfil", "perfil", Icons.Filled.Person)
     )
 
     NavigationBar {
-        val currentDestination = navController.currentDestination
+        val currentDestination = navController.currentBackStackEntryAsState().value?.destination
         items.forEach { item ->
             NavigationBarItem(
                 icon = { Icon(item.icon, contentDescription = item.label) },
@@ -187,4 +293,8 @@ fun BottomNavigationBar(navController: NavHostController, username: String, root
     }
 }
 
-data class BottomNavItem(val label: String, val route: String, val icon: androidx.compose.ui.graphics.vector.ImageVector)
+data class BottomNavItem(
+    val label: String,
+    val route: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector
+)
