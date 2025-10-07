@@ -209,18 +209,21 @@ fun NavigationContent(navController: NavHostController, username: String, modifi
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 16.dp), // 🔹 Padding agregado
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    "Bienvenido $username a PupiStore 🐱",
-                    style = MaterialTheme.typography.headlineSmall
+                    text = "Bienvenido $username a PupiStore 🐱",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 12.dp) // 🔹 Espacio debajo del título
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    "Explora juguetes, camas, collares y comida 😺",
-                    style = MaterialTheme.typography.bodyLarge
+                    text = "Explora juguetes, camas, collares y comida 😺",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(horizontal = 16.dp) // 🔹 Mejor legibilidad
                 )
             }
         }
@@ -230,6 +233,7 @@ fun NavigationContent(navController: NavHostController, username: String, modifi
         composable("carrito") { EmptyScreen("Carrito") }
     }
 }
+
 
 @Composable
 fun ProfileScreen(rootNav: NavHostController) {
