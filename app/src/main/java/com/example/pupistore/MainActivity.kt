@@ -84,28 +84,69 @@ fun LoginScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text("Nombre de usuario") },
-                modifier = Modifier.fillMaxWidth(if (isLandscape) 0.6f else 0.9f)
+            // 🔹 Título de bienvenida
+            Text(
+                text = "Bienvenido a PupiStore 🐾",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(bottom = 24.dp)
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("Contraseña") },
-                visualTransformation = PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(if (isLandscape) 0.6f else 0.9f)
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = {
-                    navController.navigate("home/$username")
-                },
-                modifier = Modifier.fillMaxWidth(if (isLandscape) 0.6f else 0.9f)
+
+            // 🔹 Campos de texto dentro de una columna con espaciado
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth(if (isLandscape) 0.6f else 0.9f),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text("Iniciar Sesión", fontSize = 16.sp)
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text("Nombre de usuario") },
+                    leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Contraseña") },
+                    leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // 🔹 Fila de botones con espaciado
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(if (isLandscape) 0.6f else 0.9f),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        username = ""
+                        password = ""
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Filled.Clear, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Limpiar")
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                Button(
+                    onClick = {
+                        navController.navigate("home/$username")
+                    },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Filled.Login, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Ingresar")
+                }
             }
         }
     }
@@ -210,20 +251,20 @@ fun NavigationContent(navController: NavHostController, username: String, modifi
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp, vertical = 16.dp), // 🔹 Padding agregado
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
                     text = "Bienvenido $username a PupiStore 🐱",
                     style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 12.dp) // 🔹 Espacio debajo del título
+                    modifier = Modifier.padding(bottom = 12.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "Explora juguetes, camas, collares y comida 😺",
                     style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(horizontal = 16.dp) // 🔹 Mejor legibilidad
+                    modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
         }
@@ -233,7 +274,6 @@ fun NavigationContent(navController: NavHostController, username: String, modifi
         composable("carrito") { EmptyScreen("Carrito") }
     }
 }
-
 
 @Composable
 fun ProfileScreen(rootNav: NavHostController) {
