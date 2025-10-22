@@ -3,6 +3,8 @@ package com.example.pupistore
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -12,26 +14,30 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import com.example.pupistore.ui.theme.PupiStoreTheme
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             var isDarkTheme by rememberSaveable { mutableStateOf(false) }
-
             PupiStoreTheme(darkTheme = isDarkTheme) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
-                    NavHost(navController = navController, startDestination = "login") {
+                    NavHost(navController = navController, startDestination = "registro") {
+                        composable("registro") {
+                            FormularioApp(navController)
+                        }
                         composable("login") {
                             LoginScreen(navController, isDarkTheme) { isDarkTheme = !isDarkTheme }
                         }
@@ -56,9 +62,7 @@ fun LoginScreen(
     var username by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     val configuration = LocalConfiguration.current
-    val isLandscape =
-        configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     Scaffold(
         modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
         topBar = {
@@ -84,69 +88,35 @@ fun LoginScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // 🔹 Título de bienvenida
             Text(
                 text = "Bienvenido a PupiStore 🐾",
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(bottom = 24.dp)
             )
-
-            // 🔹 Campos de texto dentro de una columna con espaciado
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth(if (isLandscape) 0.6f else 0.9f),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                OutlinedTextField(
-                    value = username,
-                    onValueChange = { username = it },
-                    label = { Text("Nombre de usuario") },
-                    leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("Contraseña") },
-                    leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
-                    visualTransformation = PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it },
+                label = { Text("Usuario") },
+                leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
+                modifier = Modifier.fillMaxWidth(0.8f)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Contraseña") },
+                leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth(0.8f)
+            )
             Spacer(modifier = Modifier.height(32.dp))
-
-            // 🔹 Fila de botones con espaciado
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(if (isLandscape) 0.6f else 0.9f),
-                horizontalArrangement = Arrangement.SpaceBetween
+            Button(
+                onClick = { navController.navigate("home/$username") },
+                modifier = Modifier.fillMaxWidth(0.5f)
             ) {
-                OutlinedButton(
-                    onClick = {
-                        username = ""
-                        password = ""
-                    },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Filled.Clear, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Limpiar")
-                }
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                Button(
-                    onClick = {
-                        navController.navigate("home/$username")
-                    },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(Icons.Filled.Login, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Ingresar")
-                }
+                Icon(Icons.Filled.Login, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Ingresar")
             }
         }
     }
@@ -162,11 +132,8 @@ fun HomeScreen(
 ) {
     val navBarController = rememberNavController()
     val configuration = LocalConfiguration.current
-    val isLandscape =
-        configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     Scaffold(
-        modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
         topBar = {
             TopAppBar(
                 title = { Text("PupiStore - $username") },
@@ -181,129 +148,196 @@ fun HomeScreen(
             )
         },
         bottomBar = {
-            if (!isLandscape) {
-                BottomNavigationBar(navController = navBarController)
-            }
+            if (!isLandscape) BottomNavigationBar(navBarController)
         }
     ) { padding ->
-        if (isLandscape) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-            ) {
-                NavigationRail(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .padding(vertical = 8.dp)
-                ) {
-                    val items = listOf(
-                        BottomNavItem("Inicio", "inicio", Icons.Filled.Home),
-                        BottomNavItem("Buscar", "buscar", Icons.Filled.Search),
-                        BottomNavItem("Favoritos", "favoritos", Icons.Filled.Favorite),
-                        BottomNavItem("Carrito", "carrito", Icons.Filled.ShoppingCart),
-                        BottomNavItem("Perfil", "perfil", Icons.Filled.Person)
-                    )
-
-                    val currentDestination = navBarController.currentBackStackEntryAsState().value?.destination
-
-                    items.forEach { item ->
-                        NavigationRailItem(
-                            icon = { Icon(item.icon, contentDescription = item.label) },
-                            label = { Text(item.label) },
-                            selected = currentDestination?.route == item.route,
-                            onClick = {
-                                navBarController.navigate(item.route) {
-                                    popUpTo(navBarController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        )
-                    }
-                }
-
-                NavigationContent(navBarController, username, Modifier.weight(1f))
-            }
-        } else {
-            NavigationContent(
-                navBarController,
-                username,
-                Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-            )
-        }
+        NavigationContent(
+            navBarController,
+            username,
+            Modifier
+                .fillMaxSize()
+                .padding(padding)
+        )
     }
 }
 
 @Composable
 fun NavigationContent(navController: NavHostController, username: String, modifier: Modifier) {
-    NavHost(
-        navController = navController,
-        startDestination = "inicio",
-        modifier = modifier
-    ) {
-        composable("inicio") {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "Bienvenido $username a PupiStore 🐱",
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Explora juguetes, camas, collares y comida 😺",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
-        }
-        composable("perfil") { ProfileScreen(rootNav = navController) }
+    NavHost(navController = navController, startDestination = "inicio", modifier = modifier) {
+        composable("inicio") { CircleAnimationScreen(username) }
         composable("buscar") { EmptyScreen("Buscar") }
         composable("favoritos") { EmptyScreen("Favoritos") }
         composable("carrito") { EmptyScreen("Carrito") }
+        composable("perfil") { EmptyScreen("Perfil") }
     }
 }
 
 @Composable
-fun ProfileScreen(rootNav: NavHostController) {
+fun CircleAnimationScreen(username: String) {
+    var isProcessing by remember { mutableStateOf(false) }
+    var processCompleted by remember { mutableStateOf(false) }
+    val circleSize by animateDpAsState(targetValue = if (isProcessing) 160.dp else 80.dp)
+    val circleColor = when {
+        processCompleted -> Color(0xFF4CAF50)
+        isProcessing -> Color(0xFF6C63FF)
+        else -> Color(0xFF9E9E9E)
+    }
+    val scope = rememberCoroutineScope()
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Text("Este es tu perfil 🐾", style = MaterialTheme.typography.headlineSmall)
+        Text("Hola $username 👋", style = MaterialTheme.typography.headlineSmall)
+        Spacer(modifier = Modifier.height(20.dp))
+        Canvas(modifier = Modifier.size(circleSize)) {
+            drawCircle(color = circleColor)
+        }
         Spacer(modifier = Modifier.height(20.dp))
         Button(
             onClick = {
-                rootNav.navigate("login") {
-                    popUpTo(rootNav.graph.findStartDestination().id) { inclusive = true }
+                if (!isProcessing && !processCompleted) {
+                    scope.launch {
+                        isProcessing = true
+                        delay(3000)
+                        isProcessing = false
+                        processCompleted = true
+                    }
+                } else if (processCompleted) {
+                    processCompleted = false
                 }
-            }
+            },
+            enabled = !isProcessing,
+            modifier = Modifier.fillMaxWidth(0.6f)
         ) {
-            Text("Cerrar Sesión")
+            when {
+                isProcessing -> Text("Procesando...")
+                processCompleted -> Text("Reiniciar proceso")
+                else -> Text("Iniciar proceso")
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        when {
+            isProcessing -> Text("Cargando información del sistema...", color = Color(0xFF6C63FF))
+            processCompleted -> Text("Proceso completado ✅", color = Color(0xFF4CAF50))
+            else -> Text("Listo para comenzar 🔹", color = Color.Gray)
         }
     }
 }
 
 @Composable
-fun EmptyScreen(title: String) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+fun FormularioApp(navController: NavHostController) {
+    var name by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var isChecked by remember { mutableStateOf(false) }
+    var selectedGender by remember { mutableStateOf("Masculino") }
+    var notificationsEnabled by remember { mutableStateOf(false) }
+    var sliderValue by remember { mutableStateOf(50f) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.safeDrawing) // 🔹 Evita que choque con la barra superior
+            .padding(horizontal = 16.dp)
+            .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Text(
+            "Registro en PupiStore",
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier
+                .padding(top = 12.dp, bottom = 16.dp)
+        )
+
+        Text("Nombre:")
+        TextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Ingrese su nombre") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text("Contraseña:")
+        TextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Ingrese su contraseña") },
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = isChecked, onCheckedChange = { isChecked = it })
+            Text("Acepto los términos y condiciones")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Column {
+            Text("Género:")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RadioButton(
+                    selected = selectedGender == "Masculino",
+                    onClick = { selectedGender = "Masculino" }
+                )
+                Text("Masculino")
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RadioButton(
+                    selected = selectedGender == "Femenino",
+                    onClick = { selectedGender = "Femenino" }
+                )
+                Text("Femenino")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Switch(
+                checked = notificationsEnabled,
+                onCheckedChange = { notificationsEnabled = it }
+            )
+            Text("  Habilitar notificaciones")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text("Nivel de satisfacción: ${sliderValue.toInt()}")
+        Slider(
+            value = sliderValue,
+            onValueChange = { sliderValue = it },
+            valueRange = 0f..100f,
+            steps = 5
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Button(
+            onClick = {
+                if (name.isNotBlank() && password.isNotBlank() && isChecked) {
+                    navController.navigate("login")
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Enviar y Continuar")
+        }
+    }
+}
+
+
+@Composable
+fun EmptyScreen(title: String) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text("$title (no implementado)")
     }
 }
@@ -317,7 +351,6 @@ fun BottomNavigationBar(navController: NavHostController) {
         BottomNavItem("Carrito", "carrito", Icons.Filled.ShoppingCart),
         BottomNavItem("Perfil", "perfil", Icons.Filled.Person)
     )
-
     NavigationBar {
         val currentDestination = navController.currentBackStackEntryAsState().value?.destination
         items.forEach { item ->
