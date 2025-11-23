@@ -14,6 +14,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.pupistore.ui.ObjetosScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,7 +26,8 @@ fun HomeScreen(
 ) {
     val navBarController = rememberNavController()
     val configuration = LocalConfiguration.current
-    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val isLandscape =
+        configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
 
     Scaffold(
         topBar = {
@@ -72,8 +74,13 @@ fun BottomNavigationBar(navController: NavHostController) {
         BottomNavItem("Buscar", "buscar", Icons.Filled.Search),
         BottomNavItem("Favoritos", "favoritos", Icons.Filled.Favorite),
         BottomNavItem("Carrito", "carrito", Icons.Filled.ShoppingCart),
+
+        // 👇 NUEVO ÍTEM PARA ROOM
+        BottomNavItem("Objetos", "objetos", Icons.Filled.List),
+
         BottomNavItem("Perfil", "perfil", Icons.Filled.Person)
     )
+
     NavigationBar {
         val currentDestination = navController.currentBackStackEntryAsState().value?.destination
         items.forEach { item ->
@@ -106,6 +113,10 @@ fun NavigationContent(navController: NavHostController, username: String, modifi
         composable("buscar") { EmptyScreen("Buscar") }
         composable("favoritos") { EmptyScreen("Favoritos") }
         composable("carrito") { EmptyScreen("Carrito") }
+
+        // 👇 NUEVA RUTA PARA ROOM
+        composable("objetos") { ObjetosScreen() }
+
         composable("perfil") { EmptyScreen("Perfil") }
     }
 }
